@@ -3,6 +3,8 @@ import axios from "axios";
 
 let inistialstate = {
   todo: [],
+  completedTask: [],
+  uncompletedTask: [],
   isLoading: false,
   isError: false,
 };
@@ -10,10 +12,10 @@ let inistialstate = {
 // fetch Data
 export const fetchData = createAsyncThunk(
   "fetchData",
-  async (_, { rejectWithValue }) => {
+  async ({ endpoint }, { rejectWithValue }) => {
     try {
-      let res = await axios.get("http://localhost:8001/v1/todo/get");
-      return res.data.result;
+      let res = await axios.get(`http://localhost:8001/v1/todo/${endpoint}`);
+      return { data: res.data.result, endpoint };
     } catch (err) {
       return rejectWithValue(
         err.response ? err.response.data.message : err.message
@@ -27,6 +29,7 @@ export const fetchData = createAsyncThunk(
 export const postData = createAsyncThunk(
   "postData",
   async ({ data }, { rejectWithValue }) => {
+    console.log("🚀 ~ data:", data)
     try {
       let res = await axios.post("http://localhost:8001/v1/todo/post", data);
       return res.data.result;
@@ -84,9 +87,23 @@ export const todoSlice = createSlice({
         state.isError = false;
       })
       .addCase(fetchData.fulfilled, (state, action) => {
+        console.log("🚀 ~ .addCase ~ action:", action)
         state.isLoading = false;
         state.isError = false;
-        state.todo = action.payload;
+        const { data, endpoint } = action.payload;
+        switch (endpoint) {
+          case "get":
+            state.todo = data;
+            break;
+          case "completed":
+            state.completedTask = data;
+            break;
+          case "uncompleted":
+            state.uncompletedTask = data;
+            break;
+          default:
+            break;
+        }
       })
       .addCase(fetchData.rejected, (state, action) => {
         state.isLoading = false;
@@ -114,6 +131,7 @@ export const todoSlice = createSlice({
           (state) => state._id !== action.payload._id
         );
       })
+
       .addCase(deleteData.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = action.payload;
@@ -124,6 +142,7 @@ export const todoSlice = createSlice({
       })
       .addCase(updateData.fulfilled, (state, action) => {
         state.isLoading = false;
+                 
         state.todo = state.todo.map((todo) =>
           todo._id == action.payload._id ? action.payload : todo
         );

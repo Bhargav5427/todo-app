@@ -1,4 +1,4 @@
-import * as React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { styled } from "@mui/joy/styles";
 import Sheet from "@mui/joy/Sheet";
 import Grid from "@mui/joy/Grid";
@@ -10,7 +10,6 @@ import {
   DialogTitle,
   FormControl,
   FormLabel,
-  Input,
   Modal,
   ModalDialog,
   Stack,
@@ -19,6 +18,13 @@ import { BiPlus } from "react-icons/bi";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import Swal from "sweetalert2";
+import {
+  deleteData,
+  fetchData,
+  postData,
+  updateData,
+} from "../Toolkit/Slices/todoslice";
+import { TextField } from "@mui/material";
 
 const Item = styled(Sheet)(({ theme }) => ({
   backgroundColor:
@@ -31,8 +37,12 @@ const Item = styled(Sheet)(({ theme }) => ({
 }));
 
 export default function TodoList() {
-  const [open, setOpen] = React.useState(false);
-  let dispatch = useDispatch();
+  const [open, setOpen] = useState(false);
+  const dispatch = useDispatch();
+  const taskRef = useRef(null);
+  const descriptionRef = useRef(null);
+
+  // alert
   const showToast = (title, icon) => {
     const Toast = Swal.mixin({
       background: "black",
@@ -51,20 +61,50 @@ export default function TodoList() {
     Toast.fire({ icon, title });
   };
 
-  let { todo, isError, isLoading } = useSelector((state) => state.todo);
+  // getData
+  const { todo, isError, isLoading } = useSelector((state) => state.todo);
+
+  const completedTasks = useSelector((state) => state.todo.completedTask);
+  const uncompletedTasks = useSelector((state) => state.todo.uncompletedTask);
+
+  useEffect(() => {
+    dispatch(fetchData({ endpoint: "completed" }));
+    dispatch(fetchData({ endpoint: "uncompleted" }));
+  }, []);
+
+  const handleSubmit = () => {
+    let obj = {
+      task: taskRef.current?.value || "",
+      description: descriptionRef.current?.value || "",
+    };
+    dispatch(postData({ data: obj }));
+
+    // clear the input fields
+    taskRef.current.value = "";
+    descriptionRef.current.value = "";
+  };
+
+  const handleDelete = (id) => {
+    dispatch(deleteData(id));
+  };
+
+  const handleCheck = (id, checked) => {
+    const task = todo.find((task) => task._id === id);
+    dispatch(updateData({ id, data: { ...task, status: checked } }));
+  };
+
   if (isError) {
     showToast(isError, "error");
   }
+
   if (isLoading) {
     return (
-      <div
-        className="loader"
-        style={{ marginTop: "300px" }}
-      >
+      <div className="loader" style={{ marginTop: "300px" }}>
         <CircularProgress />
       </div>
     );
   }
+
   return (
     <>
       <Grid container columns={16} sx={{ flexGrow: 1 }} mt={5}>
@@ -80,24 +120,32 @@ export default function TodoList() {
             </Button>
             <Modal open={open} onClose={() => setOpen(false)}>
               <ModalDialog>
-                <DialogTitle>Create new project</DialogTitle>
-                <DialogContent>
-                  Fill in the information of the project.
-                </DialogContent>
+                <DialogTitle>Add Task</DialogTitle>
+                <DialogContent>Fill in the information</DialogContent>
                 <form
                   onSubmit={(event) => {
                     event.preventDefault();
+                    handleSubmit();
                     setOpen(false);
                   }}
                 >
                   <Stack spacing={2} sx={{ width: "450px" }}>
                     <FormControl>
                       <FormLabel>Task Title</FormLabel>
-                      <Input autoFocus required />
+                      <TextField
+                        autoFocus
+                        required
+                        name="task"
+                        inputRef={taskRef}
+                      />
                     </FormControl>
                     <FormControl>
                       <FormLabel>Description</FormLabel>
-                      <Input required />
+                      <TextField
+                        required
+                        name="description"
+                        inputRef={descriptionRef}
+                      />
                     </FormControl>
                     <Button type="submit">Submit</Button>
                   </Stack>
@@ -110,47 +158,182 @@ export default function TodoList() {
           <Item>FILTER</Item>
         </Grid>
       </Grid>
-      <Box sx={{ maxWidth: "1000px", margin: "0 auto", marginTop: "20px" }}>
+      <Box
+        sx={{
+          maxWidth: "1000px",
+          margin: "0 auto",
+          marginTop: "20px",
+        }}
+      >
+        <div style={{ textAlign: "center", margin: "50px 0" }}>
+          <h1>to-do list</h1>
+        </div>
         <Box
           sx={{
             backgroundColor: "#ecedf6",
             padding: "20px",
             borderRadius: "10px",
-            height: "100%",
+            height: "450px",
+            border: "1px solid black",
+            overflow: "auto",
             width: "100%",
           }}
         >
           <ul>
-            <li className="todo-box">
-              <div className="todo-content">
-                <input type="checkbox" style={{ scale: "1.5" }} />
-                <div className="todo-text">
-                  <h4>task -1</h4>
-                  <p>description</p>
-                </div>
-              </div>
-              <div className="todo-action">
-                <MdDelete
-                  size={35}
-                  style={{
-                    margin: " 0 15px 0 0",
-                    padding: "5",
-                    backgroundColor: "#ebebeb",
-                    borderRadius: "5px",
-                    boxShadow: "rgba(100, 100, 111, 0.3) 0px 7px 29px 0px",
-                  }}
-                />
-                <MdEdit
-                  size={35}
-                  style={{
-                    padding: "5",
-                    backgroundColor: "#ebebeb",
-                    borderRadius: "5px",
-                    boxShadow: "rgba(100, 100, 111, 0.3) 0px 7px 29px 0px",
-                  }}
-                />
-              </div>
-            </li>
+            {todo?.map((val, ind) => {
+              return (
+                <li className="todo-box" key={ind}>
+                  <div className="todo-content">
+                    <input
+                      type="checkbox"
+                      checked={val.status}
+                      onChange={(e) => handleCheck(val._id, e.target.checked)}
+                      style={{ scale: "1.5" }}
+                    />
+                    <div className="todo-text">
+                      <h4>{val.task}</h4>
+                      <p>{val.description}</p>
+                    </div>
+                  </div>
+                  <div className="todo-action">
+                    <MdDelete
+                      onClick={() => handleDelete(val._id)}
+                      size={35}
+                      style={{
+                        margin: "0 15px 0 0",
+                        padding: "5",
+                        backgroundColor: "#ebebeb",
+                        borderRadius: "5px",
+                        boxShadow: "rgba(100, 100, 111, 0.3) 0px 7px 29px 0px",
+                      }}
+                    />
+                    <MdEdit
+                      size={35}
+                      style={{
+                        padding: "5",
+                        backgroundColor: "#ebebeb",
+                        borderRadius: "5px",
+                        boxShadow: "rgba(100, 100, 111, 0.3) 0px 7px 29px 0px",
+                      }}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </Box>
+        <div style={{ textAlign: "center", margin: "50px 0" }}>
+          <h1>Completed </h1>
+        </div>
+        <Box
+          sx={{
+            backgroundColor: "#ecedf6",
+            padding: "20px",
+            borderRadius: "10px",
+            height: "450px",
+            overflow: "auto",
+            border: "1px solid black",
+            width: "100%",
+          }}
+        >
+          <ul>
+            {completedTasks?.map((val, ind) => {
+              return (
+                <li className="todo-box" key={ind}>
+                  <div className="todo-content">
+                    <input
+                      type="checkbox"
+                      checked={val.status}
+                      onChange={(e) => handleCheck(val._id, e.target.checked)}
+                      style={{ scale: "1.5" }}
+                    />
+                    <div className="todo-text">
+                      <h4>{val.task}</h4>
+                      <p>{val.description}</p>
+                    </div>
+                  </div>
+                  <div className="todo-action">
+                    <MdDelete
+                      onClick={() => handleDelete(val._id)}
+                      size={35}
+                      style={{
+                        margin: "0 15px 0 0",
+                        padding: "5",
+                        backgroundColor: "#ebebeb",
+                        borderRadius: "5px",
+                        boxShadow: "rgba(100, 100, 111, 0.3) 0px 7px 29px 0px",
+                      }}
+                    />
+                    <MdEdit
+                      size={35}
+                      style={{
+                        padding: "5",
+                        backgroundColor: "#ebebeb",
+                        borderRadius: "5px",
+                        boxShadow: "rgba(100, 100, 111, 0.3) 0px 7px 29px 0px",
+                      }}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </Box>
+        <div style={{ textAlign: "center", margin: "50px 0" }}>
+          <h1>Uncompleted</h1>
+        </div>
+        <Box
+          sx={{
+            backgroundColor: "#ecedf6",
+            padding: "20px",
+            borderRadius: "10px",
+            height: "450px",
+            overflow: "auto",
+            border: "1px solid black",
+            width: "100%",
+          }}
+        >
+          <ul>
+            {uncompletedTasks?.map((val, ind) => {
+              return (
+                <li className="todo-box" key={ind}>
+                  <div className="todo-content">
+                    <input
+                      type="checkbox"
+                      checked={val.status}
+                      onChange={(e) => handleCheck(val._id, e.target.checked)}
+                      style={{ scale: "1.5" }}
+                    />
+                    <div className="todo-text">
+                      <h4>{val.task}</h4>
+                      <p>{val.description}</p>
+                    </div>
+                  </div>
+                  <div className="todo-action">
+                    <MdDelete
+                      onClick={() => handleDelete(val._id)}
+                      size={35}
+                      style={{
+                        margin: "0 15px 0 0",
+                        padding: "5",
+                        backgroundColor: "#ebebeb",
+                        borderRadius: "5px",
+                        boxShadow: "rgba(100, 100, 111, 0.3) 0px 7px 29px 0px",
+                      }}
+                    />
+                    <MdEdit
+                      size={35}
+                      style={{
+                        padding: "5",
+                        backgroundColor: "#ebebeb",
+                        borderRadius: "5px",
+                        boxShadow: "rgba(100, 100, 111, 0.3) 0px 7px 29px 0px",
+                      }}
+                    />
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </Box>
       </Box>

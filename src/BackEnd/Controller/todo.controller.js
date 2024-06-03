@@ -79,7 +79,7 @@ let completed = async (req, res) => {
 
     res.status(200).json({
       message: "Get all completed Task successfully",
-      completedTasks,
+      result: completedTasks,
     });
   } catch (error) {
     res.status(500).json({
@@ -95,13 +95,12 @@ let uncompleted = async (req, res) => {
 
     res.status(200).json({
       message: "Get all uncompleted Tasks successfully",
-      uncompletedTasks,
+      result: uncompletedTasks,
     });
   } catch (error) {
     res.status(500).json({
       message: error.message,
     });
-    
   }
 };
 
