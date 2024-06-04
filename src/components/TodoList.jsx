@@ -18,12 +18,7 @@ import { BiPlus } from "react-icons/bi";
 import { MdDelete, MdEdit } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
 import Swal from "sweetalert2";
-import {
-  deleteData,
-  fetchData,
-  postData,
-  updateData,
-} from "../Toolkit/Slices/todoslice";
+import { deleteData, postData, updateData } from "../Toolkit/Slices/todoslice";
 import { TextField } from "@mui/material";
 
 const Item = styled(Sheet)(({ theme }) => ({
@@ -38,6 +33,8 @@ const Item = styled(Sheet)(({ theme }) => ({
 
 export default function TodoList() {
   const [open, setOpen] = useState(false);
+  const [CompletedTask, setCompletedTask] = useState();
+  const [UnCompletedTask, setUnCompletedTask] = useState();
   const dispatch = useDispatch();
   const taskRef = useRef(null);
   const descriptionRef = useRef(null);
@@ -64,14 +61,6 @@ export default function TodoList() {
   // getData
   const { todo, isError, isLoading } = useSelector((state) => state.todo);
 
-  const completedTasks = useSelector((state) => state.todo.completedTask);
-  const uncompletedTasks = useSelector((state) => state.todo.uncompletedTask);
-
-  useEffect(() => {
-    dispatch(fetchData({ endpoint: "completed" }));
-    dispatch(fetchData({ endpoint: "uncompleted" }));
-  }, []);
-
   const handleSubmit = () => {
     let obj = {
       task: taskRef.current?.value || "",
@@ -92,6 +81,17 @@ export default function TodoList() {
     const task = todo.find((task) => task._id === id);
     dispatch(updateData({ id, data: { ...task, status: checked } }));
   };
+  useEffect(() => {
+    let taskData = todo.filter((state) => state.status == true);
+    localStorage.setItem("CompletedTask", JSON.stringify(taskData));
+    setCompletedTask(taskData);
+  }, [todo]);
+
+  useEffect(() => {
+    let taskData = todo.filter((state) => state.status == false);
+    localStorage.setItem("UnCompletedTask", JSON.stringify(taskData));
+    setUnCompletedTask(taskData);
+  }, [todo]);
 
   if (isError) {
     showToast(isError, "error");
@@ -99,7 +99,10 @@ export default function TodoList() {
 
   if (isLoading) {
     return (
-      <div className="loader" style={{ marginTop: "300px" }}>
+      <div
+        className="loader"
+        style={{ marginTop: "calc(50vh - 20px)", minHeight: "100vh" }}
+      >
         <CircularProgress />
       </div>
     );
@@ -237,7 +240,7 @@ export default function TodoList() {
           }}
         >
           <ul>
-            {completedTasks?.map((val, ind) => {
+            {CompletedTask?.map((val, ind) => {
               return (
                 <li className="todo-box" key={ind}>
                   <div className="todo-content">
@@ -294,7 +297,7 @@ export default function TodoList() {
           }}
         >
           <ul>
-            {uncompletedTasks?.map((val, ind) => {
+            {UnCompletedTask?.map((val, ind) => {
               return (
                 <li className="todo-box" key={ind}>
                   <div className="todo-content">

@@ -3,8 +3,6 @@ import axios from "axios";
 
 let inistialstate = {
   todo: [],
-  completedTask: [],
-  uncompletedTask: [],
   isLoading: false,
   isError: false,
 };
@@ -12,10 +10,10 @@ let inistialstate = {
 // fetch Data
 export const fetchData = createAsyncThunk(
   "fetchData",
-  async ({ endpoint }, { rejectWithValue }) => {
+  async (_,{ rejectWithValue }) => {
     try {
-      let res = await axios.get(`http://localhost:8001/v1/todo/${endpoint}`);
-      return { data: res.data.result, endpoint };
+      let res = await axios.get(`http://localhost:8001/v1/todo/get`);
+      return res.data.result;
     } catch (err) {
       return rejectWithValue(
         err.response ? err.response.data.message : err.message
@@ -29,7 +27,6 @@ export const fetchData = createAsyncThunk(
 export const postData = createAsyncThunk(
   "postData",
   async ({ data }, { rejectWithValue }) => {
-    console.log("🚀 ~ data:", data)
     try {
       let res = await axios.post("http://localhost:8001/v1/todo/post", data);
       return res.data.result;
@@ -87,23 +84,9 @@ export const todoSlice = createSlice({
         state.isError = false;
       })
       .addCase(fetchData.fulfilled, (state, action) => {
-        console.log("🚀 ~ .addCase ~ action:", action)
         state.isLoading = false;
         state.isError = false;
-        const { data, endpoint } = action.payload;
-        switch (endpoint) {
-          case "get":
-            state.todo = data;
-            break;
-          case "completed":
-            state.completedTask = data;
-            break;
-          case "uncompleted":
-            state.uncompletedTask = data;
-            break;
-          default:
-            break;
-        }
+        state.todo = action.payload;
       })
       .addCase(fetchData.rejected, (state, action) => {
         state.isLoading = false;
@@ -142,7 +125,7 @@ export const todoSlice = createSlice({
       })
       .addCase(updateData.fulfilled, (state, action) => {
         state.isLoading = false;
-                 
+
         state.todo = state.todo.map((todo) =>
           todo._id == action.payload._id ? action.payload : todo
         );

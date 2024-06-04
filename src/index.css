@@ -12,6 +12,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+
+::selection {
+  color: rgb(0, 0, 0) !important;
+  background: rgba(255, 0, 72, 0.342) !important;
+}
+
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
@@ -55,5 +62,4 @@ ul li:nth-last-child(1) {
 .loader{
   display: flex;
   justify-content: center;
-  align-self: center;
 }
